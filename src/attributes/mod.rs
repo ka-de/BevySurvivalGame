@@ -1,25 +1,32 @@
-use item_abilities::{add_ability_to_item_drops, handle_item_abilitiy_on_attack};
+use item_abilities::{ add_ability_to_item_drops, handle_item_abilitiy_on_attack };
 use rand::Rng;
-use serde::{Deserialize, Serialize};
-use std::ops::{Range, RangeInclusive};
+use serde::{ Deserialize, Serialize };
+use std::ops::{ Range, RangeInclusive };
 
-use bevy::{ecs::system::EntityCommands, prelude::*};
-use bevy_proto::prelude::{ReflectSchematic, Schematic};
+use bevy::{ ecs::system::EntityCommands, prelude::* };
+use bevy_proto::prelude::{ ReflectSchematic, Schematic };
 pub mod health_regen;
 pub mod modifiers;
 use crate::{
     animations::AnimatedTextureMaterial,
-    attributes::attribute_helpers::{build_item_stack_with_parsed_attributes, get_rarity_rng},
+    attributes::attribute_helpers::{ build_item_stack_with_parsed_attributes, get_rarity_rng },
     client::GameOverEvent,
-    colors::{LIGHT_BLUE, LIGHT_GREEN, LIGHT_GREY, LIGHT_RED},
-    inventory::{Inventory, ItemStack},
-    item::{Equipment, EquipmentType},
-    player::{stats::PlayerStats, Limb},
+    colors::{ LIGHT_BLUE, LIGHT_GREEN, LIGHT_GREY, LIGHT_RED },
+    inventory::{ Inventory, ItemStack },
+    item::{ Equipment, EquipmentType },
+    player::{ stats::PlayerStats, Limb },
     proto::proto_param::ProtoParam,
     ui::{
-        DropOnSlotEvent, InventoryState, RemoveFromSlotEvent, ShowInvPlayerStatsEvent, UIElement,
+        DropOnSlotEvent,
+        InventoryState,
+        RemoveFromSlotEvent,
+        ShowInvPlayerStatsEvent,
+        UIElement,
     },
-    CustomFlush, GameParam, GameState, Player,
+    CustomFlush,
+    GameParam,
+    GameState,
+    Player,
 };
 use modifiers::*;
 pub mod attribute_helpers;
@@ -27,7 +34,7 @@ pub mod hunger;
 use hunger::*;
 pub mod item_abilities;
 
-use self::health_regen::{handle_health_regen, handle_mana_regen};
+use self::health_regen::{ handle_health_regen, handle_mana_regen };
 pub struct AttributesPlugin;
 
 #[derive(Resource, Reflect, Default, Bundle)]
@@ -44,7 +51,7 @@ pub struct BlockAttributeBundle {
     Default,
     Debug,
     Serialize,
-    Deserialize,
+    Deserialize
 )]
 #[reflect(Schematic, Default)]
 pub struct ItemAttributes {
@@ -63,7 +70,7 @@ pub struct ItemAttributes {
     pub dodge: i32,
     pub speed: i32,
     pub lifesteal: i32,
-    pub defence: i32,
+    pub defense: i32,
     pub xp_rate: i32,
     pub loot_rate: i32,
 }
@@ -73,122 +80,150 @@ impl ItemAttributes {
         let mut tooltips: Vec<String> = vec![];
         let is_positive = |val: i32| val > 0;
         if self.health != 0 {
-            tooltips.push(format!(
-                "{}{} HP",
-                if is_positive(self.health) { "+" } else { "" },
-                self.health
-            ));
+            tooltips.push(
+                format!("{}{} HP", if is_positive(self.health) { "+" } else { "" }, self.health)
+            );
         }
-        if self.defence != 0 {
-            tooltips.push(format!(
-                "{}{} Defence",
-                if is_positive(self.defence) { "+" } else { "" },
-                self.defence
-            ));
+        if self.defense != 0 {
+            tooltips.push(
+                format!(
+                    "{}{} Defense",
+                    if is_positive(self.defense) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.defense
+                )
+            );
         }
         if self.attack != 0 {
-            tooltips.push(format!(
-                "{}{} DMG",
-                if is_positive(self.attack) { "+" } else { "" },
-                self.attack
-            ));
+            tooltips.push(
+                format!("{}{} DMG", if is_positive(self.attack) { "+" } else { "" }, self.attack)
+            );
         }
-        if self.attack_cooldown != 0. {
-            tooltips.push(format!("{:.2} Hits/s", 1. / self.attack_cooldown));
+        if self.attack_cooldown != 0.0 {
+            tooltips.push(format!("{:.2} Hits/s", 1.0 / self.attack_cooldown));
         }
         if self.crit_chance != 0 {
-            tooltips.push(format!(
-                "{}{}% Crit",
-                if is_positive(self.crit_chance) {
-                    "+"
-                } else {
-                    ""
-                },
-                self.crit_chance
-            ));
+            tooltips.push(
+                format!(
+                    "{}{}% Crit",
+                    if is_positive(self.crit_chance) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.crit_chance
+                )
+            );
         }
         if self.crit_damage != 0 {
-            tooltips.push(format!(
-                "{}{}% Crit DMG",
-                if is_positive(self.crit_damage) {
-                    "+"
-                } else {
-                    ""
-                },
-                self.crit_damage
-            ));
+            tooltips.push(
+                format!(
+                    "{}{}% Crit DMG",
+                    if is_positive(self.crit_damage) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.crit_damage
+                )
+            );
         }
         if self.bonus_damage != 0 {
-            tooltips.push(format!(
-                "{}{} DMG",
-                if is_positive(self.bonus_damage) {
-                    "+"
-                } else {
-                    ""
-                },
-                self.bonus_damage
-            ));
+            tooltips.push(
+                format!(
+                    "{}{} DMG",
+                    if is_positive(self.bonus_damage) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.bonus_damage
+                )
+            );
         }
         if self.health_regen != 0 {
-            tooltips.push(format!(
-                "{}{} HP Regen",
-                if is_positive(self.health_regen) {
-                    "+"
-                } else {
-                    ""
-                },
-                self.health_regen
-            ));
+            tooltips.push(
+                format!(
+                    "{}{} HP Regen",
+                    if is_positive(self.health_regen) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.health_regen
+                )
+            );
         }
         if self.healing != 0 {
-            tooltips.push(format!(
-                "{}{}% Healing",
-                if is_positive(self.healing) { "+" } else { "" },
-                self.healing
-            ));
+            tooltips.push(
+                format!(
+                    "{}{}% Healing",
+                    if is_positive(self.healing) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.healing
+                )
+            );
         }
         if self.thorns != 0 {
-            tooltips.push(format!(
-                "{}{}% Thorns",
-                if is_positive(self.thorns) { "+" } else { "" },
-                self.thorns
-            ));
+            tooltips.push(
+                format!(
+                    "{}{}% Thorns",
+                    if is_positive(self.thorns) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.thorns
+                )
+            );
         }
         if self.dodge != 0 {
-            tooltips.push(format!(
-                "{}{}% Dodge",
-                if is_positive(self.dodge) { "+" } else { "" },
-                self.dodge
-            ));
+            tooltips.push(
+                format!("{}{}% Dodge", if is_positive(self.dodge) { "+" } else { "" }, self.dodge)
+            );
         }
         if self.speed != 0 {
-            tooltips.push(format!(
-                "{}{}% Speed",
-                if is_positive(self.speed) { "+" } else { "" },
-                self.speed
-            ));
+            tooltips.push(
+                format!("{}{}% Speed", if is_positive(self.speed) { "+" } else { "" }, self.speed)
+            );
         }
         if self.lifesteal != 0 {
-            tooltips.push(format!(
-                "{}{} Lifesteal",
-                if is_positive(self.lifesteal) { "+" } else { "" },
-                self.lifesteal
-            ));
+            tooltips.push(
+                format!(
+                    "{}{} Lifesteal",
+                    if is_positive(self.lifesteal) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.lifesteal
+                )
+            );
         }
 
         if self.xp_rate != 0 {
-            tooltips.push(format!(
-                "{}{}% XP",
-                if is_positive(self.xp_rate) { "+" } else { "" },
-                self.xp_rate
-            ));
+            tooltips.push(
+                format!("{}{}% XP", if is_positive(self.xp_rate) { "+" } else { "" }, self.xp_rate)
+            );
         }
         if self.loot_rate != 0 {
-            tooltips.push(format!(
-                "{}{}% Loot",
-                if is_positive(self.loot_rate) { "+" } else { "" },
-                self.loot_rate
-            ));
+            tooltips.push(
+                format!(
+                    "{}{}% Loot",
+                    if is_positive(self.loot_rate) {
+                        "+"
+                    } else {
+                        ""
+                    },
+                    self.loot_rate
+                )
+            );
         }
 
         tooltips
@@ -196,11 +231,8 @@ impl ItemAttributes {
     pub fn get_stats_summary(&self) -> Vec<(String, String)> {
         let mut tooltips: Vec<(String, String)> = vec![];
         tooltips.push(("HP:       ".to_string(), format!("{}", self.health)));
-        tooltips.push((
-            "Att:      ".to_string(),
-            format!("{}", self.attack + self.bonus_damage),
-        ));
-        tooltips.push(("Defence:  ".to_string(), format!("{}", self.defence)));
+        tooltips.push(("Att:      ".to_string(), format!("{}", self.attack + self.bonus_damage)));
+        tooltips.push(("Defense:  ".to_string(), format!("{}", self.defense)));
         tooltips.push(("Crit:     ".to_string(), format!("{}", self.crit_chance)));
         tooltips.push(("Crit DMG: ".to_string(), format!("{}", self.crit_damage)));
         tooltips.push(("HP Regen: ".to_string(), format!("{}", self.health_regen)));
@@ -222,7 +254,7 @@ impl ItemAttributes {
         if self.health > 0 {
             entity.insert(MaxHealth(self.health));
         }
-        if self.attack_cooldown > 0. {
+        if self.attack_cooldown > 0.0 {
             entity.insert(AttackCooldown(self.attack_cooldown));
         } else {
             entity.remove::<AttackCooldown>();
@@ -237,18 +269,30 @@ impl ItemAttributes {
         entity.insert(Dodge(self.dodge));
         entity.insert(Speed(self.speed));
         entity.insert(Lifesteal(self.lifesteal));
-        entity.insert(Defence(self.defence));
+        entity.insert(Defense(self.defense));
         entity.insert(XpRateBonus(self.xp_rate));
         entity.insert(LootRateBonus(self.loot_rate));
     }
     pub fn change_attribute(&mut self, modifier: AttributeModifier) -> &Self {
         match modifier.modifier.as_str() {
-            "health" => self.health += modifier.delta,
-            "attack" => self.attack += modifier.delta,
-            "durability" => self.durability += modifier.delta,
-            "max_durability" => self.max_durability += modifier.delta,
-            "attack_cooldown" => self.attack_cooldown += modifier.delta as f32,
-            "invincibility_cooldown" => self.invincibility_cooldown += modifier.delta as f32,
+            "health" => {
+                self.health += modifier.delta;
+            }
+            "attack" => {
+                self.attack += modifier.delta;
+            }
+            "durability" => {
+                self.durability += modifier.delta;
+            }
+            "max_durability" => {
+                self.max_durability += modifier.delta;
+            }
+            "attack_cooldown" => {
+                self.attack_cooldown += modifier.delta as f32;
+            }
+            "invincibility_cooldown" => {
+                self.invincibility_cooldown += modifier.delta as f32;
+            }
             _ => warn!("Got an unexpected attribute: {:?}", modifier.modifier),
         }
         self
@@ -270,16 +314,14 @@ impl ItemAttributes {
             dodge: self.dodge + other.dodge,
             speed: self.speed + other.speed,
             lifesteal: self.lifesteal + other.lifesteal,
-            defence: self.defence + other.defence,
+            defense: self.defense + other.defense,
             xp_rate: self.xp_rate + other.xp_rate,
             loot_rate: self.loot_rate + other.loot_rate,
         }
     }
 }
 macro_rules! setup_raw_bonus_attributes {
-    (struct $name:ident {
-        $($field_name:ident: $field_type:ty,)*
-    }) => {
+    (struct $name:ident { $($field_name:ident: $field_type:ty,)* }) => {
         #[derive(Component, PartialEq, Clone, Reflect, FromReflect, Schematic, Default, Debug)]
         #[reflect(Schematic, Default)]
         pub struct $name {
@@ -330,12 +372,10 @@ macro_rules! setup_raw_bonus_attributes {
                 item_attributes
             }
         }
-    }
+    };
 }
 macro_rules! setup_raw_base_attributes {
-    (struct $name:ident {
-        $($field_name:ident: $field_type:ty,)*
-    }) => {
+    (struct $name:ident { $($field_name:ident: $field_type:ty,)* }) => {
         #[derive(Component, PartialEq, Clone, Reflect, FromReflect, Schematic, Default, Debug)]
         #[reflect(Schematic, Default)]
         pub struct $name {
@@ -374,48 +414,52 @@ macro_rules! setup_raw_base_attributes {
                 item_attributes
             }
         }
+    };
+}
+
+setup_raw_bonus_attributes! {
+    struct RawItemBonusAttributes {
+        attack: Option<Range<i32>>,
+        health: Option<Range<i32>>,
+        defense: Option<Range<i32>>,
+        durability: Option<Range<i32>>,
+        max_durability: Option<Range<i32>>,
+        //
+        crit_chance: Option<Range<i32>>,
+        crit_damage: Option<Range<i32>>,
+        bonus_damage: Option<Range<i32>>,
+        health_regen: Option<Range<i32>>,
+        healing: Option<Range<i32>>,
+        thorns: Option<Range<i32>>,
+        dodge: Option<Range<i32>>,
+        speed: Option<Range<i32>>,
+        lifesteal: Option<Range<i32>>,
+        xp_rate: Option<Range<i32>>,
+        loot_rate: Option<Range<i32>>,
     }
 }
 
-setup_raw_bonus_attributes! { struct RawItemBonusAttributes {
-    attack: Option<Range<i32>>,
-     health: Option<Range<i32>>,
-     defence: Option<Range<i32>>,
-     durability: Option<Range<i32>>,
-     max_durability: Option<Range<i32>>,
-    //
-     crit_chance: Option<Range<i32>>,
-     crit_damage: Option<Range<i32>>,
-     bonus_damage: Option<Range<i32>>,
-     health_regen: Option<Range<i32>>,
-     healing: Option<Range<i32>>,
-     thorns: Option<Range<i32>>,
-     dodge: Option<Range<i32>>,
-     speed: Option<Range<i32>>,
-     lifesteal: Option<Range<i32>>,
-     xp_rate: Option<Range<i32>>,
-     loot_rate: Option<Range<i32>>,
-}}
-
-setup_raw_base_attributes! { struct RawItemBaseAttributes {
-    attack: Option<Range<i32>>,
-     health: Option<Range<i32>>,
-     defence: Option<Range<i32>>,
-     durability: Option<Range<i32>>,
-     max_durability: Option<Range<i32>>,
-    //
-     crit_chance: Option<Range<i32>>,
-     crit_damage: Option<Range<i32>>,
-     bonus_damage: Option<Range<i32>>,
-     health_regen: Option<Range<i32>>,
-     healing: Option<Range<i32>>,
-     thorns: Option<Range<i32>>,
-     dodge: Option<Range<i32>>,
-     speed: Option<Range<i32>>,
-     lifesteal: Option<Range<i32>>,
-     xp_rate: Option<Range<i32>>,
-     loot_rate: Option<Range<i32>>,
-}}
+setup_raw_base_attributes! {
+    struct RawItemBaseAttributes {
+        attack: Option<Range<i32>>,
+        health: Option<Range<i32>>,
+        defense: Option<Range<i32>>,
+        durability: Option<Range<i32>>,
+        max_durability: Option<Range<i32>>,
+        //
+        crit_chance: Option<Range<i32>>,
+        crit_damage: Option<Range<i32>>,
+        bonus_damage: Option<Range<i32>>,
+        health_regen: Option<Range<i32>>,
+        healing: Option<Range<i32>>,
+        thorns: Option<Range<i32>>,
+        dodge: Option<Range<i32>>,
+        speed: Option<Range<i32>>,
+        lifesteal: Option<Range<i32>>,
+        xp_rate: Option<Range<i32>>,
+        loot_rate: Option<Range<i32>>,
+    }
+}
 
 #[derive(
     Component,
@@ -428,7 +472,7 @@ setup_raw_base_attributes! { struct RawItemBaseAttributes {
     Eq,
     PartialEq,
     Serialize,
-    Deserialize,
+    Deserialize
 )]
 #[reflect(Component, Schematic)]
 pub enum ItemRarity {
@@ -443,10 +487,10 @@ impl ItemRarity {
     fn get_num_bonus_attributes(&self, eqp_type: &EquipmentType) -> RangeInclusive<i32> {
         let acc_offset = if eqp_type.is_accessory() { 1 } else { 0 };
         match self {
-            ItemRarity::Common => (0 + acc_offset)..=(1 + acc_offset),
-            ItemRarity::Uncommon => (1 + acc_offset)..=(2 + acc_offset),
-            ItemRarity::Rare => (2 + acc_offset)..=(3 + acc_offset),
-            ItemRarity::Legendary => (4 + acc_offset)..=(5 + acc_offset),
+            ItemRarity::Common => 0 + acc_offset..=1 + acc_offset,
+            ItemRarity::Uncommon => 1 + acc_offset..=2 + acc_offset,
+            ItemRarity::Rare => 2 + acc_offset..=3 + acc_offset,
+            ItemRarity::Legendary => 4 + acc_offset..=5 + acc_offset,
         }
     }
     fn get_rarity_attributes_bonus(&self) -> i32 {
@@ -502,7 +546,7 @@ pub struct PlayerAttributeBundle {
     pub mana: Mana,
     pub attack: Attack,
     pub attack_cooldown: AttackCooldown,
-    pub defence: Defence,
+    pub defense: Defense,
     pub crit_chance: CritChance,
     pub crit_damage: CritDamage,
     pub bonus_damage: BonusDamage,
@@ -519,7 +563,16 @@ pub struct PlayerAttributeBundle {
 
 //TODO: Add max health vs curr health
 #[derive(
-    Reflect, FromReflect, Default, Schematic, Component, Clone, Debug, Copy, Serialize, Deserialize,
+    Reflect,
+    FromReflect,
+    Default,
+    Schematic,
+    Component,
+    Clone,
+    Debug,
+    Copy,
+    Serialize,
+    Deserialize
 )]
 #[reflect(Component, Schematic)]
 pub struct CurrentHealth(pub i32);
@@ -571,7 +624,7 @@ pub struct Speed(pub i32);
 #[derive(Default, Component, Clone, Debug, Copy)]
 pub struct Lifesteal(pub i32);
 #[derive(Default, Component, Clone, Debug, Copy)]
-pub struct Defence(pub i32);
+pub struct Defense(pub i32);
 #[derive(Default, Component, Clone, Debug, Copy)]
 pub struct XpRateBonus(pub i32);
 #[derive(Default, Component, Clone, Debug, Copy)]
@@ -603,15 +656,14 @@ impl Plugin for AttributesPlugin {
                     handle_item_abilitiy_on_attack,
                     handle_new_items_raw_attributes.before(CustomFlush),
                     handle_player_item_attribute_change_events.after(CustomFlush),
-                )
-                    .in_set(OnUpdate(GameState::Main)),
+                ).in_set(OnUpdate(GameState::Main))
             );
     }
 }
 
 fn clamp_health(
     mut health: Query<(&mut CurrentHealth, &MaxHealth), With<Player>>,
-    mut game_over_event: EventWriter<GameOverEvent>,
+    mut game_over_event: EventWriter<GameOverEvent>
 ) {
     for (mut h, max_h) in health.iter_mut() {
         if h.0 <= 0 {
@@ -637,14 +689,12 @@ fn handle_player_item_attribute_change_events(
     eqp_attributes: Query<&ItemAttributes, With<Equipment>>,
     mut att_events: EventReader<AttributeChangeEvent>,
     mut stats_event: EventWriter<ShowInvPlayerStatsEvent>,
-    player_atts: Query<&ItemAttributes, With<Player>>,
+    player_atts: Query<&ItemAttributes, With<Player>>
 ) {
     for _event in att_events.iter() {
         let mut new_att = player_atts.single().clone();
         let (player, inv, stats) = player.single();
-        let equips: Vec<ItemAttributes> = inv
-            .equipment_items
-            .items
+        let equips: Vec<ItemAttributes> = inv.equipment_items.items
             .iter()
             .chain(inv.accessory_items.items.iter())
             .flatten()
@@ -654,7 +704,7 @@ fn handle_player_item_attribute_change_events(
         for a in eqp_attributes.iter().chain(equips.iter()) {
             new_att = new_att.combine(a);
         }
-        if new_att.attack_cooldown == 0. {
+        if new_att.attack_cooldown == 0.0 {
             new_att.attack_cooldown = 0.4;
         }
         new_att = stats.apply_stats_to_player_attributes(new_att.clone());
@@ -666,7 +716,7 @@ fn handle_player_item_attribute_change_events(
 /// Adds a current health component to all entities with a max health component
 pub fn add_current_health_with_max_health(
     mut commands: Commands,
-    mut health: Query<(Entity, &MaxHealth), (Changed<MaxHealth>, Without<CurrentHealth>)>,
+    mut health: Query<(Entity, &MaxHealth), (Changed<MaxHealth>, Without<CurrentHealth>)>
 ) {
     for (entity, max_health) in health.iter_mut() {
         commands.entity(entity).insert(CurrentHealth(max_health.0));
@@ -681,7 +731,7 @@ fn update_attributes_with_held_item_change(
     mut inv: Query<&mut Inventory>,
     item_stack_query: Query<&ItemAttributes>,
     mut att_event: EventWriter<AttributeChangeEvent>,
-    proto: ProtoParam,
+    proto: ProtoParam
 ) {
     let active_hotbar_slot = inv_state.active_hotbar_slot;
     let active_hotbar_item = inv.single_mut().items.items[active_hotbar_slot].clone();
@@ -691,14 +741,12 @@ fn update_attributes_with_held_item_change(
         let new_item_stack = new_item.item_stack.clone();
         if let Some(current_item) = prev_held_item_data {
             let curr_attributes = item_stack_query.get(current_item.entity).unwrap();
-            let new_attributes = &(new_item.item_stack.attributes);
+            let new_attributes = &new_item.item_stack.attributes;
             if new_item_stack != current_item.item_stack {
                 new_item.spawn_item_on_hand(&mut commands, &mut game_param, &proto);
                 att_event.send(AttributeChangeEvent);
             } else if curr_attributes != new_attributes {
-                commands
-                    .entity(current_item.entity)
-                    .insert(new_attributes.clone());
+                commands.entity(current_item.entity).insert(new_attributes.clone());
                 att_event.send(AttributeChangeEvent);
             }
         } else {
@@ -719,16 +767,17 @@ fn update_attributes_and_sprite_with_equipment_change(
     proto_param: ProtoParam,
     mut materials: ResMut<Assets<AnimatedTextureMaterial>>,
     mut att_event: EventWriter<AttributeChangeEvent>,
-    mut events: EventReader<DropOnSlotEvent>,
+    mut events: EventReader<DropOnSlotEvent>
 ) {
     for drop in events.iter() {
-        if drop.drop_target_slot_state.r#type.is_equipment()
-            || drop.drop_target_slot_state.r#type.is_accessory()
+        if
+            drop.drop_target_slot_state.r#type.is_equipment() ||
+            drop.drop_target_slot_state.r#type.is_accessory()
         {
             let slot = drop.drop_target_slot_state.slot_index;
-            let Some(eqp_type) =
-                proto_param.get_component::<EquipmentType, _>(drop.dropped_item_stack.obj_type)
-            else {
+            let Some(eqp_type) = proto_param.get_component::<EquipmentType, _>(
+                drop.dropped_item_stack.obj_type
+            ) else {
                 continue;
             };
             if !eqp_type.is_equipment() || !eqp_type.get_valid_slots().contains(&slot) {
@@ -739,10 +788,12 @@ fn update_attributes_and_sprite_with_equipment_change(
                 for (mat, limb) in player_limbs.iter() {
                     if Limb::from_slot(slot).contains(limb) {
                         let mat = materials.get_mut(mat).unwrap();
-                        let armor_texture_handle = asset_server.load(format!(
-                            "textures/player/{}.png",
-                            drop.dropped_item_stack.obj_type.to_string()
-                        ));
+                        let armor_texture_handle = asset_server.load(
+                            format!(
+                                "textures/player/{}.png",
+                                drop.dropped_item_stack.obj_type.to_string()
+                            )
+                        );
                         mat.lookup_texture = Some(armor_texture_handle);
                     }
                 }
@@ -756,21 +807,23 @@ fn update_sprite_with_equipment_removed(
     mut removed_inv_item: EventReader<RemoveFromSlotEvent>,
     player_limbs: Query<(&mut Handle<AnimatedTextureMaterial>, &Limb)>,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<AnimatedTextureMaterial>>,
+    mut materials: ResMut<Assets<AnimatedTextureMaterial>>
 ) {
     for item in removed_inv_item.iter() {
         if item.removed_slot_state.r#type.is_equipment() {
             for (mat, limb) in player_limbs.iter() {
                 if Limb::from_slot(item.removed_slot_state.slot_index).contains(limb) {
                     let mat = materials.get_mut(mat).unwrap();
-                    let armor_texture_handle = asset_server.load(format!(
-                        "textures/player/player-texture-{}.png",
-                        if limb == &Limb::Torso || limb == &Limb::Hands {
+                    let armor_texture_handle = asset_server.load(
+                        format!("textures/player/player-texture-{}.png", if
+                            limb == &Limb::Torso ||
+                            limb == &Limb::Hands
+                        {
                             Limb::Torso.to_string().to_lowercase()
                         } else {
                             limb.to_string().to_lowercase()
-                        }
-                    ));
+                        })
+                    );
                     mat.lookup_texture = Some(armor_texture_handle);
                 }
             }
@@ -788,8 +841,8 @@ fn handle_new_items_raw_attributes(
             &EquipmentType,
             Option<&ItemLevel>,
         ),
-        Or<(Added<RawItemBaseAttributes>, Added<RawItemBonusAttributes>)>,
-    >,
+        Or<(Added<RawItemBaseAttributes>, Added<RawItemBonusAttributes>)>
+    >
 ) {
     for (e, stack, raw_bonus_att_option, raw_base_att, eqp_type, item_level) in new_items.iter() {
         let rarity = get_rarity_rng(rand::thread_rng());
@@ -799,7 +852,7 @@ fn handle_new_items_raw_attributes(
             raw_bonus_att_option,
             rarity,
             eqp_type,
-            item_level.map(|l| l.0),
+            item_level.map(|l| l.0)
         );
         if new_stack.obj_type.is_weapon() {
             add_ability_to_item_drops(&mut new_stack);

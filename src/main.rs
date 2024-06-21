@@ -1,14 +1,23 @@
 #![allow(non_snake_case)]
-use std::{
-    env,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::{ env, marker::PhantomData, ops::{ Deref, DerefMut } };
 
 use ai::AIPlugin;
 use attributes::{
-    Attack, AttributesPlugin, BonusDamage, CritChance, CritDamage, Defence, Dodge, Healing,
-    HealthRegen, Lifesteal, LootRateBonus, MaxHealth, Speed, Thorns, XpRateBonus,
+    Attack,
+    AttributesPlugin,
+    BonusDamage,
+    CritChance,
+    CritDamage,
+    Defense,
+    Dodge,
+    Healing,
+    HealthRegen,
+    Lifesteal,
+    LootRateBonus,
+    MaxHealth,
+    Speed,
+    Thorns,
+    XpRateBonus,
 };
 mod audio;
 mod container;
@@ -25,19 +34,24 @@ use sappling::SapplingPlugin;
 use bevy::{
     core_pipeline::clear_color::ClearColorConfig,
     diagnostic::FrameTimeDiagnosticsPlugin,
-    ecs::{schedule::ScheduleLabel, system::SystemParam},
+    ecs::{ schedule::ScheduleLabel, system::SystemParam },
     prelude::*,
     reflect::TypeUuid,
     render::{
         camera::RenderTarget,
         render_resource::{
-            AsBindGroup, Extent3d, ShaderRef, TextureDescriptor, TextureDimension, TextureFormat,
+            AsBindGroup,
+            Extent3d,
+            ShaderRef,
+            TextureDescriptor,
+            TextureDimension,
+            TextureFormat,
             TextureUsages,
         },
         view::RenderLayers,
     },
-    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
-    window::{PresentMode, WindowResolution},
+    sprite::{ Material2d, Material2dPlugin, MaterialMesh2dBundle },
+    window::{ PresentMode, WindowResolution },
 };
 
 mod juice;
@@ -63,45 +77,51 @@ mod schematic;
 mod ui;
 mod world;
 use animations::AnimationsPlugin;
-use assets::{GameAssetsPlugin, Graphics, SpriteSize};
-use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
+use assets::{ GameAssetsPlugin, Graphics, SpriteSize };
+use bevy_asset_loader::prelude::{ AssetCollection, LoadingState, LoadingStateAppExt };
 use bevy_ecs_tilemap::TilemapPlugin;
 use client::ClientPlugin;
 use combat::*;
 use enemy::EnemyPlugin;
 use inputs::InputsPlugin;
 use inventory::ItemStack;
-use item::{Equipment, ItemsPlugin, WorldObject, WorldObjectResource};
-use player::{Player, PlayerPlugin, PlayerState};
-use proto::{proto_param::ProtoParam, ProtoPlugin};
+use item::{ Equipment, ItemsPlugin, WorldObject, WorldObjectResource };
+use player::{ Player, PlayerPlugin, PlayerState };
+use proto::{ proto_param::ProtoParam, ProtoPlugin };
 
 use schematic::SchematicPlugin;
 use ui::{
-    display_main_menu, handle_menu_button_click_events, remove_main_menu, spawn_menu_text_buttons,
-    InventorySlotState, UIPlugin,
+    display_main_menu,
+    handle_menu_button_click_events,
+    remove_main_menu,
+    spawn_menu_text_buttons,
+    InventorySlotState,
+    UIPlugin,
 };
 use world::WorldGeneration;
 use world::{
-    chunk::{Chunk, TileEntityCollection, TileSpriteData},
+    chunk::{ Chunk, TileEntityCollection, TileSpriteData },
     dimension::ActiveDimension,
     generation::WorldObjectCache,
     world_helpers::world_pos_to_tile_pos,
     y_sort::YSort,
-    TileMapPosition, WallTextureData, WorldPlugin,
+    TileMapPosition,
+    WallTextureData,
+    WorldPlugin,
 };
 
 use crate::assets::SpriteAnchor;
 use lazy_static::lazy_static;
 
-const ZOOM_SCALE: f32 = 1.;
-const PLAYER_MOVE_SPEED: f32 = 90. * ZOOM_SCALE;
-const PLAYER_DASH_SPEED: f32 = 250. * ZOOM_SCALE;
+const ZOOM_SCALE: f32 = 1.0;
+const PLAYER_MOVE_SPEED: f32 = 90.0 * ZOOM_SCALE;
+const PLAYER_DASH_SPEED: f32 = 250.0 * ZOOM_SCALE;
 pub const TIME_STEP: f32 = 1.0 / 60.0;
-pub const HEIGHT: f32 = 1600.;
+pub const HEIGHT: f32 = 1600.0;
 pub const ASPECT_RATIO: f32 = 16.0 / 9.0;
 pub const WIDTH: f32 = HEIGHT * ASPECT_RATIO;
-pub const GAME_HEIGHT: f32 = 180. * ZOOM_SCALE;
-pub const GAME_WIDTH: f32 = 320. * ZOOM_SCALE;
+pub const GAME_HEIGHT: f32 = 180.0 * ZOOM_SCALE;
+pub const GAME_WIDTH: f32 = 320.0 * ZOOM_SCALE;
 lazy_static! {
     pub static ref DEBUG_MODE: bool = env::var("DEBUG_MODE").is_ok();
 }
@@ -123,18 +143,18 @@ fn main() {
             s.configure_set(CoreGameSet::Main.run_if(in_state(GameState::Main)));
         })
         .add_plugins(
-            DefaultPlugins
-                .set(AssetPlugin {
-                    // Enable hot-reloading of assets:
-                    watch_for_changes: false,
-                    ..default()
-                })
+            DefaultPlugins.set(AssetPlugin {
+                // Enable hot-reloading of assets:
+                watch_for_changes: false,
+                ..default()
+            })
                 .set(ImagePlugin::default_nearest())
                 // .disable::<LogPlugin>()
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        resolution: WindowResolution::new(WIDTH, HEIGHT)
-                            .with_scale_factor_override(1.0),
+                        resolution: WindowResolution::new(WIDTH, HEIGHT).with_scale_factor_override(
+                            1.0
+                        ),
                         title: "Hiru's Island".to_string(),
                         present_mode: PresentMode::Fifo,
                         resizable: false,
@@ -142,7 +162,7 @@ fn main() {
                         ..Default::default()
                     }),
                     ..default()
-                }),
+                })
         )
         .insert_resource(Msaa::Off)
         .insert_resource(FixedTime::new_from_secs(TIME_STEP))
@@ -173,7 +193,7 @@ fn main() {
         // .add_plugin(DiagnosticExplorerAgentPlugin)
         .add_startup_system(setup)
         .add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu),
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu)
         )
         .add_collection_to_loading_state::<_, ImageAssets>(GameState::Loading)
         .add_system(display_main_menu.in_schedule(OnEnter(GameState::MainMenu)))
@@ -244,7 +264,7 @@ pub struct GameParam<'w, 's> {
         (
             &'static Attack,
             &'static MaxHealth,
-            &'static Defence,
+            &'static Defense,
             &'static CritChance,
             &'static CritDamage,
             &'static BonusDamage,
@@ -256,7 +276,7 @@ pub struct GameParam<'w, 's> {
             &'static Lifesteal,
             &'static XpRateBonus,
             &'static LootRateBonus,
-        ),
+        )
     >,
     pub chunk_query: Query<'w, 's, (Entity, &'static Chunk)>,
     pub tile_collection_query: Query<'w, 's, &'static TileEntityCollection, With<Chunk>>,
@@ -264,13 +284,8 @@ pub struct GameParam<'w, 's> {
     pub world_object_query: Query<
         'w,
         's,
-        (
-            Entity,
-            &'static GlobalTransform,
-            &'static SpriteSize,
-            &'static WorldObject,
-        ),
-        Without<ItemStack>,
+        (Entity, &'static GlobalTransform, &'static SpriteSize, &'static WorldObject),
+        Without<ItemStack>
     >,
     pub wall_data_query: Query<'w, 's, (Entity, &'static mut WallTextureData)>,
     pub equipment: Query<'w, 's, (Entity, &'static Equipment)>,
@@ -314,7 +329,7 @@ impl<'w, 's> GameParam<'w, 's> {
     }
     pub fn get_objects_from_chunk_cache(
         &self,
-        chunk_pos: IVec2,
+        chunk_pos: IVec2
     ) -> Vec<(TileMapPosition, WorldObject)> {
         let mut cache = vec![];
         for (pos, obj) in self.world_obj_cache.objects.iter() {
@@ -326,7 +341,7 @@ impl<'w, 's> GameParam<'w, 's> {
     }
     pub fn get_objects_from_dungeon_cache(
         &self,
-        chunk_pos: IVec2,
+        chunk_pos: IVec2
     ) -> Vec<(TileMapPosition, WorldObject)> {
         let mut cache = vec![];
         for (pos, obj) in self.world_obj_cache.dungeon_objects.iter() {
@@ -343,14 +358,10 @@ impl<'w, 's> GameParam<'w, 's> {
         self.world_obj_cache.generated_chunks.push(chunk_pos);
     }
     pub fn is_dungeon_chunk_generated(&self, chunk_pos: IVec2) -> bool {
-        self.world_obj_cache
-            .generated_dungeon_chunks
-            .contains(&chunk_pos)
+        self.world_obj_cache.generated_dungeon_chunks.contains(&chunk_pos)
     }
     pub fn set_dungeon_chunk_generated(&mut self, chunk_pos: IVec2) {
-        self.world_obj_cache
-            .generated_dungeon_chunks
-            .push(chunk_pos);
+        self.world_obj_cache.generated_dungeon_chunks.push(chunk_pos);
     }
     pub fn get_object_from_chunk_cache(&self, pos: TileMapPosition) -> Option<&WorldObject> {
         self.world_obj_cache.objects.get(&pos)
@@ -380,7 +391,7 @@ impl<'w, 's> GameParam<'w, 's> {
     pub fn get_obj_entity_at_tile(
         &self,
         tile: TileMapPosition,
-        proto_param: &ProtoParam,
+        proto_param: &ProtoParam
     ) -> Option<Entity> {
         for (obj_e, g_txm, size, obj) in self.world_object_query.iter() {
             let anchor = proto_param
@@ -391,8 +402,7 @@ impl<'w, 's> GameParam<'w, 's> {
                 for neighbour_pos in pos
                     .get_neighbour_tiles_for_medium_objects()
                     .iter()
-                    .chain(vec![pos].iter())
-                {
+                    .chain(vec![pos].iter()) {
                     if neighbour_pos == &tile {
                         return Some(obj_e);
                     }
@@ -407,7 +417,7 @@ impl<'w, 's> GameParam<'w, 's> {
     pub fn get_wall_data_at_tile(
         &self,
         tile: TileMapPosition,
-        proto_param: &ProtoParam,
+        proto_param: &ProtoParam
     ) -> Option<WallTextureData> {
         if let Some(e) = self.get_obj_entity_at_tile(tile, proto_param) {
             if let Ok(data) = self.wall_data_query.get(e) {
@@ -419,7 +429,7 @@ impl<'w, 's> GameParam<'w, 's> {
     pub fn get_wall_data_at_tile_mut(
         &mut self,
         tile: TileMapPosition,
-        proto_param: &ProtoParam,
+        proto_param: &ProtoParam
     ) -> Option<Mut<WallTextureData>> {
         if let Some(e) = self.get_obj_entity_at_tile(tile, proto_param) {
             if let Ok(data) = self.wall_data_query.get_mut(e) {
@@ -434,7 +444,7 @@ impl<'w, 's> GameParam<'w, 's> {
         let mut rng = rand::thread_rng();
         if rng.gen_ratio(u32::min(100, crit_chance.0.try_into().unwrap_or(0)), 100) {
             (
-                ((attack.0 + bonus_dmg.0) as f32 * (f32::abs(crit_dmg.0 as f32) / 100.)) as u32,
+                (((attack.0 + bonus_dmg.0) as f32) * (f32::abs(crit_dmg.0 as f32) / 100.0)) as u32,
                 true,
             )
         } else {
@@ -490,7 +500,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut game_render_materials: ResMut<Assets<ColorMaterial>>,
     mut ui_render_materials: ResMut<Assets<UITextureMaterial>>,
-    mut images: ResMut<Assets<Image>>,
+    mut images: ResMut<Assets<Image>>
 ) {
     let img_size = Extent3d {
         width: GAME_WIDTH as u32,
@@ -508,9 +518,9 @@ fn setup(
             format: TextureFormat::Bgra8UnormSrgb,
             mip_level_count: 1,
             sample_count: 1,
-            usage: TextureUsages::TEXTURE_BINDING
-                | TextureUsages::COPY_DST
-                | TextureUsages::RENDER_ATTACHMENT,
+            usage: TextureUsages::TEXTURE_BINDING |
+            TextureUsages::COPY_DST |
+            TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         },
         ..default()
@@ -523,9 +533,9 @@ fn setup(
             format: TextureFormat::Bgra8UnormSrgb,
             mip_level_count: 1,
             sample_count: 1,
-            usage: TextureUsages::TEXTURE_BINDING
-                | TextureUsages::COPY_DST
-                | TextureUsages::RENDER_ATTACHMENT,
+            usage: TextureUsages::TEXTURE_BINDING |
+            TextureUsages::COPY_DST |
+            TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         },
         ..default()
@@ -564,7 +574,7 @@ fn setup(
                 ..default()
             },
             camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(Color::rgba(0., 0., 0., 0.)),
+                clear_color: ClearColorConfig::Custom(Color::rgba(0.0, 0.0, 0.0, 0.0)),
             },
             ..default()
         },
@@ -572,8 +582,9 @@ fn setup(
     ));
 
     // This material has the texture that has been rendered.
-    let game_render_material_handle =
-        game_render_materials.add(ColorMaterial::from(game_image_handle));
+    let game_render_material_handle = game_render_materials.add(
+        ColorMaterial::from(game_image_handle)
+    );
     let ui_render_material_handle = ui_render_materials.add(UITextureMaterial {
         source_texture: Some(ui_image_handle),
     });
@@ -584,14 +595,13 @@ fn setup(
             MaterialMesh2dBundle {
                 mesh: meshes
                     .add(
-                        shape::Quad {
+                        (shape::Quad {
                             size: Vec2::new(game_size.x, game_size.y),
                             ..Default::default()
-                        }
-                        .into(),
+                        }).into()
                     )
                     .into(),
-                transform: Transform::from_scale(Vec3::new(1., 1., 1.)),
+                transform: Transform::from_scale(Vec3::new(1.0, 1.0, 1.0)),
                 material: game_render_material_handle,
                 ..default()
             },
@@ -604,16 +614,15 @@ fn setup(
             MaterialMesh2dBundle {
                 mesh: meshes
                     .add(
-                        shape::Quad {
+                        (shape::Quad {
                             size: Vec2::new(game_size.x, game_size.y),
                             ..Default::default()
-                        }
-                        .into(),
+                        }).into()
                     )
                     .into(),
                 transform: Transform {
-                    translation: Vec3::new(0., 0., 1.),
-                    scale: Vec3::new(1., 1., 1.),
+                    translation: Vec3::new(0.0, 0.0, 1.0),
+                    scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
                 material: ui_render_material_handle,
@@ -637,7 +646,7 @@ fn setup(
             ..default()
         },
         MainCamera,
-        GameUpscale(HEIGHT / img_size.height as f32),
+        GameUpscale(HEIGHT / (img_size.height as f32)),
         first_pass_layer,
     ));
     commands.spawn((
@@ -652,7 +661,7 @@ fn setup(
             ..default()
         },
         UICamera,
-        GameUpscale(HEIGHT / img_size.height as f32),
+        GameUpscale(HEIGHT / (img_size.height as f32)),
         second_pass_layer,
     ));
 }
@@ -665,7 +674,7 @@ impl AppExt for App {
     fn with_default_schedule(
         &mut self,
         schedule: impl ScheduleLabel,
-        f: impl Fn(&mut App),
+        f: impl Fn(&mut App)
     ) -> &mut App {
         let orig_default = self.default_schedule_label.clone();
         self.default_schedule_label = Box::new(schedule);

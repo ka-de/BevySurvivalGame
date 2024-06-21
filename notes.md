@@ -244,7 +244,7 @@ impl different att styles w seldum_state
 - Dodge: +10% Dodge
 - Speed: +10% Speed
 - Lifesteal: +1 Lifesteal
-- Defence: +10 Defence
+- Defense: +10 Defense
 - Loot Rate: +10% Loot
 - Venom
 - Burn

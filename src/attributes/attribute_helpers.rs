@@ -1,31 +1,25 @@
 use std::cmp::max;
 
-use rand::{rngs::ThreadRng, Rng};
+use rand::{ rngs::ThreadRng, Rng };
 
 use crate::{
-    attributes::{ItemAttributes, ItemRarity, RawItemBaseAttributes, RawItemBonusAttributes},
+    attributes::{ ItemAttributes, ItemRarity, RawItemBaseAttributes, RawItemBonusAttributes },
     inventory::ItemStack,
     item::EquipmentType,
     proto::proto_param::ProtoParam,
 };
 pub fn create_new_random_item_stack_with_attributes(
     stack: &ItemStack,
-    proto: &ProtoParam,
+    proto: &ProtoParam
 ) -> ItemStack {
     let Some(eqp_type) = proto.get_component::<EquipmentType, _>(stack.obj_type) else {
         let mut stack = stack.clone();
-        stack.metadata = proto
-            .get_item_data(stack.obj_type)
-            .unwrap()
-            .metadata
-            .clone();
+        stack.metadata = proto.get_item_data(stack.obj_type).unwrap().metadata.clone();
         return stack.clone();
     };
 
     let raw_bonus_att_option = proto.get_component::<RawItemBonusAttributes, _>(stack.obj_type);
-    let raw_base_att = proto
-        .get_component::<RawItemBaseAttributes, _>(stack.obj_type)
-        .unwrap();
+    let raw_base_att = proto.get_component::<RawItemBaseAttributes, _>(stack.obj_type).unwrap();
 
     let rarity = get_rarity_rng(rand::thread_rng());
 
@@ -35,7 +29,7 @@ pub fn create_new_random_item_stack_with_attributes(
         raw_bonus_att_option,
         rarity,
         eqp_type,
-        stack.metadata.level,
+        stack.metadata.level
     )
 }
 
@@ -62,7 +56,7 @@ pub fn reroll_item_bonus_attributes(stack: &ItemStack, proto: &ProtoParam) -> It
     final_att.max_durability = stack.attributes.max_durability;
     final_att.attack = stack.attributes.attack;
     final_att.attack_cooldown = stack.attributes.attack_cooldown;
-    final_att.defence = stack.attributes.defence;
+    final_att.defense = stack.attributes.defense;
     final_att.health = stack.attributes.health;
 
     let mut new_stack = stack.copy_with_attributes(&final_att);
@@ -89,7 +83,7 @@ pub fn build_item_stack_with_parsed_attributes(
     raw_bonus_att_option: Option<&RawItemBonusAttributes>,
     rarity: ItemRarity,
     equip_type: &EquipmentType,
-    level_option: Option<u8>,
+    level_option: Option<u8>
 ) -> ItemStack {
     let parsed_bonus_att = if let Some(raw_bonus_att) = raw_bonus_att_option {
         raw_bonus_att.into_item_attributes(rarity.clone(), equip_type)
@@ -103,8 +97,8 @@ pub fn build_item_stack_with_parsed_attributes(
         if equip_type.is_weapon() {
             final_att.attack += max(0, (item_level - 1) as i32);
         } else if equip_type.is_equipment() && !equip_type.is_accessory() {
-            final_att.health += max(0, ((item_level * 2) - 1) as i32);
-            final_att.defence += max(0, (item_level - 1) as i32);
+            final_att.health += max(0, (item_level * 2 - 1) as i32);
+            final_att.defense += max(0, (item_level - 1) as i32);
         }
         level = item_level;
     }

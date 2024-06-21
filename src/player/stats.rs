@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 
-use crate::attributes::{AttributeChangeEvent, ItemAttributes};
+use crate::attributes::{ AttributeChangeEvent, ItemAttributes };
 
 #[derive(Component, Clone, Default, Debug, Serialize, Deserialize)]
 pub struct PlayerStats {
@@ -26,8 +26,8 @@ impl PlayerStats {
     }
     pub fn apply_stats_to_player_attributes(&self, input_att: ItemAttributes) -> ItemAttributes {
         let mut att = input_att;
-        att.attack += (self.str) + (self.dex / 2) + (self.agi / 2) + (self.vit / 2);
-        // att.defence += self.str;
+        att.attack += self.str + self.dex / 2 + self.agi / 2 + self.vit / 2;
+        // att.defense += self.str;
         att.crit_damage += 5 * self.dex + 2 * self.str;
         att.crit_chance += 2 * self.dex;
         att.speed += 5 * self.agi;
@@ -49,7 +49,7 @@ impl PlayerStats {
 
 pub fn send_attribute_event_on_stats_update(
     stats: Query<&PlayerStats, Changed<PlayerStats>>,
-    mut att_event: EventWriter<AttributeChangeEvent>,
+    mut att_event: EventWriter<AttributeChangeEvent>
 ) {
     if stats.get_single().is_ok() {
         att_event.send(AttributeChangeEvent);

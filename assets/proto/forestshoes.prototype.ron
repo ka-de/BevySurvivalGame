@@ -5,7 +5,7 @@
   "survival_rogue_like::item::WorldObject": ForestShoes,
   "survival_rogue_like::attributes::RawItemBaseAttributes": (
         health: Some((start: 2, end: 6)),
-        defence: Some((start: 2, end: 6)),
+        defense: Some((start: 2, end: 6)),
         dodge: Some((start: 4, end: 14)),
   ),
   "survival_rogue_like::attributes::RawItemBonusAttributes": (
